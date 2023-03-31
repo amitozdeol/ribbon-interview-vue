@@ -87,13 +87,22 @@
                     :rules="messageRules"
                     label="Message"
                   ></v-textarea>
+
+                  <v-autocomplete
+                    label="Search for email"
+                    v-model="form.email"
+                    :items="donors?.data"
+                    :loading="!donors"
+                    item-text="email"
+                    item-value="id"
+                    :search-input.sync="searchText"
+                    return-object
+                    @change="update"
+                  >
+                  </v-autocomplete>
+
                   <v-text-field
-                    v-model="email"
-                    :rules="emailRules"
-                    label="Email"
-                  ></v-text-field>
-                  <v-text-field
-                    v-model="donor_id"
+                    v-model="form.donor_id"
                     label="Donor Id"
                   ></v-text-field>
                   <v-btn type="submit" block class="mt-2">Send</v-btn>
@@ -126,8 +135,11 @@ export default {
     return {
       donors: null,
       valid: false,
-      email: "",
-      donor_id: "",
+      searchText: "",
+      form: {
+        email: "",
+        donor_id: "",
+      },
       message: "",
       emailRules: [
         (value) => {
@@ -145,6 +157,25 @@ export default {
       ],
     };
   },
+  watch: {
+    async searchText(val) {
+      try {
+        if (val?.length >= 3) {
+          this.donors = null;
+          const response = await fetch(
+            `https://interview.ribbon.giving/api/donors?search=${this.searchText}`,
+            {
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+          const data = await response.json();
+          this.donors = data;
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+  },
   mounted() {
     axios
       .get("https://interview.ribbon.giving/api/donors")
@@ -153,6 +184,26 @@ export default {
   methods: {
     async submit() {
       // Send message to server.
+      // make a post request to https://interview.ribbon.giving/api/donors/{donor_id}/send-message
+      try {
+        const response = await fetch(
+          `https://interview.ribbon.giving/api/donors/${this.form.donor_id}/send-message`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: this.message }),
+          }
+        );
+        const data = await response.json();
+        console.log(data);
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    update(e) {
+      //update form data values
+      this.form.email = e.email;
+      this.form.donor_id = e.id;
     },
   },
 };
