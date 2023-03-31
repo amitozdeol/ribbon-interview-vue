@@ -39,6 +39,52 @@
             </v-row>
             <v-row>
               <v-col>
+                <v-text-field
+                  v-model="search"
+                  label="Search"
+                  append-icon="mdi-magnify"
+                  @keyup.native="updateSearch"
+                  ref="search"
+                  dense
+                  outlined
+                ></v-text-field>
+                <v-progress-linear
+                  v-if="!donors"
+                  color="success"
+                  indeterminate
+                  height="4"
+                ></v-progress-linear>
+                <v-data-table
+                  v-else
+                  :headers="headers"
+                  :items="donors.data"
+                  :items-per-page="5"
+                  :sort-by="sortBy"
+                  :sort-desc="sortDesc"
+                  class="table"
+                  item-key="name"
+                >
+                  <template
+                    v-slot:item="{ item }"
+                    :class="{ 'row-hover': true }"
+                    @mouseover="onRowHover(true, item)"
+                    @mouseout="onRowHover(false, item)"
+                  >
+                    <tr
+                      :style="{
+                        color: 'rgba(58,58,64,0.87)',
+                        backgroundColor: 'transparent',
+                      }"
+                      class="row-hover"
+                    >
+                      <td>{{ item.full_name }}</td>
+                      <td>{{ item.email }}</td>
+                      <td>{{ item.total_donations }}</td>
+                      <td>{{ formatDate(item.first_donation) }}</td>
+                    </tr>
+                  </template>
+                </v-data-table>
+
                 <table v-if="donors">
                   <thead>
                     <tr>
@@ -133,7 +179,27 @@ export default {
 
   data() {
     return {
+      search: "",
+      sortBy: "name",
+      sortDesc: false,
+      headers: [
+        { text: "Name", value: "name", sortable: true },
+        { text: "Email", value: "email", sortable: true },
+        {
+          text: "Total Donations",
+          value: "total_donations",
+          align: "right",
+          sortable: true,
+        },
+        {
+          text: "First Donation",
+          value: "first_donation",
+          align: "right",
+          sortable: true,
+        },
+      ],
       donors: null,
+      fixed_donors: null,
       valid: false,
       searchText: "",
       form: {
@@ -177,9 +243,10 @@ export default {
     },
   },
   mounted() {
-    axios
-      .get("https://interview.ribbon.giving/api/donors")
-      .then((response) => (this.donors = response.data));
+    axios.get("https://interview.ribbon.giving/api/donors").then((response) => {
+      this.donors = response.data;
+      this.fixed_donors = response.data.data;
+    });
   },
   methods: {
     async submit() {
@@ -205,6 +272,38 @@ export default {
       this.form.email = e.email;
       this.form.donor_id = e.id;
     },
+
+    formatDate(dateString) {
+      const date = new Date(dateString);
+      const options = {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        hour12: false,
+      };
+      return new Intl.DateTimeFormat("en-US", options).format(date);
+    },
+    updateSearch() {
+      this.$nextTick(() => {
+        this.search = this.$refs.search.value;
+        this.donors.data = this.fixed_donors.filter((donor) => {
+          return donor.full_name
+            .toLowerCase()
+            .includes(this.search.toLowerCase());
+        });
+      });
+    },
   },
 };
 </script>
+<style>
+.v-data-table-header {
+  background-color: rgb(58, 58, 64, 0.05);
+}
+.row-hover:hover {
+  background-color: rgba(58, 58, 64, 0.03) !important;
+}
+</style>
