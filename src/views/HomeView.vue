@@ -1,15 +1,15 @@
 <template>
-  <hello-world> asdfas </hello-world>
+    <hello-world> asdfas </hello-world>
 </template>
 
 <script>
-import HelloWorld from "../components/HelloWorld";
+import HelloWorld from '../components/HelloWorld'
 
 export default {
-  name: "Home",
+    name: 'Home',
 
-  components: {
-    HelloWorld,
-  },
-};
+    components: {
+        HelloWorld,
+    },
+}
 </script>
